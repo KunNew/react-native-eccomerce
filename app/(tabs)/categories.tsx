@@ -5,8 +5,10 @@ import { Colors } from '@/constants/Colors';
 import { categories, products } from '@/data/mockData';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useStore } from '@/store/useStore';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
+  Animated,
+  Easing,
   FlatList,
   SafeAreaView,
   StyleSheet,
@@ -33,11 +35,15 @@ export default function CategoriesScreen() {
   const [searchQuery, setSearchQuery] = React.useState('');
   const [isFilterModalVisible, setIsFilterModalVisible] = React.useState(false);
   const [isHorizontalLayout, setIsHorizontalLayout] = React.useState(false);
+  const [isTransitioning, setIsTransitioning] = React.useState(false);
   const [filters, setFilters] = React.useState<FilterOptions>({
     sortBy: 'popular',
     priceRange: { min: 0, max: Infinity },
     minRating: 0,
   });
+
+  const gridOpacity = useRef(new Animated.Value(1)).current;
+  const horizontalOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     // Initialize store with mock data
@@ -46,6 +52,12 @@ export default function CategoriesScreen() {
       setCategories(categories);
     }
   }, [setProducts, setCategories, storeProducts.length]);
+
+  // Initialize opacity states based on layout
+  useEffect(() => {
+    gridOpacity.setValue(isHorizontalLayout ? 0 : 1);
+    horizontalOpacity.setValue(isHorizontalLayout ? 1 : 0);
+  }, []);
 
   const filteredProducts = React.useMemo(() => {
     let filtered = selectedCategory 
@@ -95,8 +107,59 @@ export default function CategoriesScreen() {
     return sortedProducts;
   }, [selectedCategory, searchQuery, storeProducts, getProductsByCategory, filters]);
 
-  const renderProductCard = ({ item }: { item: any }) => (
-    <ProductCard product={item} isHorizontalLayout={isHorizontalLayout} />
+  const handleLayoutToggle = () => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
+    
+    if (isHorizontalLayout) {
+      // Switch from horizontal to grid
+      Animated.parallel([
+        Animated.timing(horizontalOpacity, {
+          toValue: 0,
+          duration: 200,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(gridOpacity, {
+          toValue: 1,
+          duration: 250,
+          delay: 50,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setIsHorizontalLayout(false);
+        setIsTransitioning(false);
+      });
+    } else {
+      // Switch from grid to horizontal
+      Animated.parallel([
+        Animated.timing(gridOpacity, {
+          toValue: 0,
+          duration: 200,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(horizontalOpacity, {
+          toValue: 1,
+          duration: 250,
+          delay: 50,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setIsHorizontalLayout(true);
+        setIsTransitioning(false);
+      });
+    }
+  };
+
+  const renderGridProductCard = ({ item }: { item: any }) => (
+    <ProductCard product={item} isHorizontalLayout={false} />
+  );
+
+  const renderHorizontalProductCard = ({ item }: { item: any }) => (
+    <ProductCard product={item} isHorizontalLayout={true} />
   );
 
   const renderCategoryCard = ({ item }: { item: any }) => {
@@ -133,8 +196,12 @@ export default function CategoriesScreen() {
         </Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity 
-            style={styles.layoutButton}
-            onPress={() => setIsHorizontalLayout(!isHorizontalLayout)}
+            style={[
+              styles.layoutButton,
+              { opacity: isTransitioning ? 0.5 : 1 }
+            ]}
+            onPress={handleLayoutToggle}
+            disabled={isTransitioning}
           >
             <IconSymbol 
               name={isHorizontalLayout ? "rectangle.grid.1x2" : "square.grid.2x2"} 
@@ -205,24 +272,76 @@ export default function CategoriesScreen() {
       </View>
 
       {/* Products Grid */}
-      <FlatList
-        key={isHorizontalLayout ? 'horizontal' : 'grid'}
-        data={filteredProducts}
-        renderItem={renderProductCard}
-        keyExtractor={(item) => item.id}
-        numColumns={isHorizontalLayout ? 1 : 2}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.productsContainer, { paddingBottom: Math.max(80, insets.bottom + 60) }]}
-        columnWrapperStyle={isHorizontalLayout ? undefined : styles.productRow}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <IconSymbol name="magnifyingglass" size={48} color={colors.text + '40'} />
-            <Text style={[styles.emptyText, { color: colors.text + '60' }]}>
-              No products found
-            </Text>
-          </View>
-        }
-      />
+      <View style={styles.productsGridContainer}>
+        {/* Grid Layout */}
+        <Animated.View 
+          style={[
+            styles.flatListContainer,
+            { 
+              opacity: gridOpacity,
+              transform: [{ 
+                scale: gridOpacity.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.95, 1]
+                })
+              }]
+            }
+          ]}
+          pointerEvents={isHorizontalLayout ? 'none' : 'auto'}
+        >
+          <FlatList
+            data={filteredProducts}
+            renderItem={renderGridProductCard}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[styles.productsContainer, { paddingBottom: Math.max(80, insets.bottom + 60) }]}
+            columnWrapperStyle={styles.productRow}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <IconSymbol name="magnifyingglass" size={48} color={colors.text + '40'} />
+                <Text style={[styles.emptyText, { color: colors.text + '60' }]}>
+                  No products found
+                </Text>
+              </View>
+            }
+          />
+        </Animated.View>
+
+        {/* Horizontal Layout */}
+        <Animated.View 
+          style={[
+            styles.flatListContainer,
+            { 
+              opacity: horizontalOpacity,
+              transform: [{ 
+                scale: horizontalOpacity.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.95, 1]
+                })
+              }]
+            }
+          ]}
+          pointerEvents={!isHorizontalLayout ? 'none' : 'auto'}
+        >
+          <FlatList
+            data={filteredProducts}
+            renderItem={renderHorizontalProductCard}
+            keyExtractor={(item) => item.id}
+            numColumns={1}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[styles.productsContainer, { paddingBottom: Math.max(80, insets.bottom + 60) }]}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <IconSymbol name="magnifyingglass" size={48} color={colors.text + '40'} />
+                <Text style={[styles.emptyText, { color: colors.text + '60' }]}>
+                  No products found
+                </Text>
+              </View>
+            }
+          />
+        </Animated.View>
+      </View>
 
       {/* Filter Modal */}
       <FilterModal
@@ -319,6 +438,17 @@ const styles = StyleSheet.create({
   categoryChipText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  productsGridContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  flatListContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   productsContainer: {
     paddingHorizontal: 20,
