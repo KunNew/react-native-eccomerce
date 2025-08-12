@@ -1,3 +1,4 @@
+import { useStore } from '@/store/useStore';
 import { useEffect, useState } from 'react';
 import { useColorScheme as useRNColorScheme } from 'react-native';
 
@@ -6,6 +7,7 @@ import { useColorScheme as useRNColorScheme } from 'react-native';
  */
 export function useColorScheme() {
   const [hasHydrated, setHasHydrated] = useState(false);
+  const storeTheme = useStore((s) => s.theme);
 
   useEffect(() => {
     setHasHydrated(true);
@@ -14,7 +16,7 @@ export function useColorScheme() {
   const colorScheme = useRNColorScheme();
 
   if (hasHydrated) {
-    return colorScheme;
+    return storeTheme ?? colorScheme ?? 'light';
   }
 
   return 'light';

@@ -1,12 +1,12 @@
 // Fallback for using MaterialIcons on Android and web.
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { SymbolWeight, SymbolViewProps } from 'expo-symbols';
+import { SymbolViewProps, SymbolWeight } from 'expo-symbols';
 import { ComponentProps } from 'react';
 import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
 
 type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
-type IconSymbolName = keyof typeof MAPPING;
+export type IconSymbolName = keyof typeof MAPPING;
 
 /**
  * Add your SF Symbols to Material Icons mappings here.
@@ -14,10 +14,67 @@ type IconSymbolName = keyof typeof MAPPING;
  * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
  */
 const MAPPING = {
+  // Navigation icons
   'house.fill': 'home',
+  'square.grid.2x2.fill': 'apps',
+  'cart.fill': 'shopping-cart',
+  'cart': 'shopping-cart',
+  'heart.fill': 'favorite',
+  'heart': 'favorite-border',
+  'person.fill': 'person',
+  
+  // UI icons
+  'chevron.right': 'chevron-right',
+  'chevron.left': 'chevron-left',
+  'chevron.up': 'keyboard-arrow-up',
+  'chevron.down': 'keyboard-arrow-down',
+  'arrow.up': 'north',
+  'arrow.down': 'south',
+  'plus': 'add',
+  'minus': 'remove',
+  'xmark.circle.fill': 'cancel',
+  'xmark': 'close',
+  'checkmark': 'check',
+  'magnifyingglass': 'search',
+  'bell': 'notifications',
+  'trash': 'delete',
+  'star.fill': 'star',
+  'star': 'star-border',
+  'sparkles': 'auto-awesome',
+  
+  // Login/Auth icons
+  'envelope': 'email',
+  'envelope.fill': 'email',
+  'lock': 'lock',
+  'lock.fill': 'lock',
+  'eye': 'visibility',
+  'eye.slash': 'visibility-off',
+  'key': 'vpn-key',
+  
+  // Profile icons
+  'gearshape': 'settings',
+  'person.circle': 'account-circle',
+  'creditcard': 'credit-card',
+  'location': 'location-on',
+  'bag': 'shopping-bag',
+  'arrow.clockwise': 'refresh',
+  'truck.box': 'local-shipping',
+  'globe': 'language',
+  'moon': 'dark-mode',
+  'sun.max': 'wb-sunny',
+  'questionmark.circle': 'help',
+  'message': 'message',
+  'rectangle.portrait.and.arrow.right': 'logout',
+  'slider.horizontal.3': 'tune',
+  
+  // Social icons
+  'g.circle': 'g-translate', // Google fallback
+  'f.circle': 'facebook', // Facebook
+  'apple.logo': 'apple', // Apple fallback
+  
+  // Other icons
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
-  'chevron.right': 'chevron-right',
 } as IconMapping;
 
 /**
